@@ -8,26 +8,6 @@ void main() {
   runApp(MyApp());
 }
 
-class NetworkData<T> {
-  final T? data;
-  final bool isFetching;
-  final Object? error;
-
-  NetworkData(this.data, this.isFetching, this.error);
-
-  NetworkData startFetching() {
-    return NetworkData(this.data, true, null);
-  }
-
-  NetworkData setData(T data) {
-    return NetworkData(data, false, null);
-  }
-
-  NetworkData setError(Object error) {
-    return NetworkData(this.data, false, error);
-  }
-}
-
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
