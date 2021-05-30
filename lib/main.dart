@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:faker/faker.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
 void main() {
   runApp(MyApp());
@@ -65,34 +66,32 @@ class DataFetcherService {
 
 class _MyHomePageState extends State<MyHomePage> {
   DataFetcherService _dataFetcher = DataFetcherService();
-  StreamController<String> _incomingText$ = StreamController<String>();
+  StreamController<void> _dataRequests$ = StreamController<void>();
+
+  late Stream<String> _data$;
 
   bool _isFetching = false;
 
-  void _fetchText() {
+  void _setIsFetching(bool isFetching) {
     setState(() {
-      _isFetching = true;
-    });
-
-    _dataFetcher.fetchSomeText().then((text) {
-      _incomingText$.add(text);
-    }).catchError((error) {
-      _incomingText$.addError(error);
-    }).whenComplete(() {
-      setState(() {
-        _isFetching = false;
-      });
+      _isFetching = isFetching;
     });
   }
 
   @override
   void initState() {
-    _fetchText();
+    _data$ = _dataRequests$.stream
+        .doOnData((_) => _setIsFetching(true))
+        .asyncMap((_) => _dataFetcher.fetchSomeText())
+        .doOnEach((_) => _setIsFetching(false));
+
+    _dataRequests$.add(Null);
+
     super.initState();
   }
 
   void dispose() {
-    _incomingText$.close();
+    _dataRequests$.close();
     super.dispose();
   }
 
@@ -114,7 +113,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<String>(
-        stream: _incomingText$.stream,
+        stream: _data$,
         builder: (context, snapshot) {
           return Scaffold(
             appBar: AppBar(
@@ -137,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             floatingActionButton: FloatingActionButton.extended(
-              onPressed: _isFetching ? null : _fetchText,
+              onPressed: _isFetching ? null : () => _dataRequests$.add(Null),
               tooltip: 'Fetch more data',
               label: Text(snapshot.connectionState == ConnectionState.waiting ? "Waiting for data" : "Fetch more data"),
               icon: _isFetching && snapshot.connectionState != ConnectionState.waiting
